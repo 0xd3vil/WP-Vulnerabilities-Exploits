@@ -1,0 +1,3 @@
+Dork : index of /wp-content/uploads/gravity_forms/
+inurl:/wp-content/uploads/gravity_forms/
+inurl:/wp-content/plugins/gravityforms/
